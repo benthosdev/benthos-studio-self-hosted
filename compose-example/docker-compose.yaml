@@ -1,0 +1,48 @@
+version: '3.3'
+
+volumes:
+  studio_data: {}
+  backup_data: {}
+  prometheus_data: {}
+  grafana_data: {}
+
+services:
+  benthos-studio:
+    image: ghcr.io/benthosdev/benthos-studio-shost
+    ports: [ 3001:3001, 3002:3002 ]
+    restart: always
+    volumes:
+      - studio_data:/var/data
+
+  prometheus:
+    image: prom/prometheus
+    ports: [ 9090:9090 ]
+    restart: always
+    volumes:
+      - ./config/prometheus.yaml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+
+  grafana:
+    image: grafana/grafana
+    ports: [ 3000:3000 ]
+    restart: always
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/provisioning/:/etc/grafana/provisioning/
+
+  litestream-backups:
+    image: litestream/litestream
+    restart: always
+    volumes:
+      - studio_data:/var/data/studio
+      - backup_data:/var/data/litestream
+    command:
+      - 'replicate'
+      - '/var/data/studio/db'
+      - 'file:///var/data/litestream/db' # TODO: Change this to S3 or something

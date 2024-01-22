@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'benthos_studio'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['benthos-studio:3002']
